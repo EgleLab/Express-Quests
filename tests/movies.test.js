@@ -1,94 +1,96 @@
 const request = require("supertest");
-
+const crypto = require("node:crypto");
 const app = require("../src/app");
-
-
-describe("GET /api/movies", () => {
-  it("should return all movies", async () => {
-    const response = await request(app).get("/api/movies");
-
-    expect(response.headers["content-type"]).toMatch(/json/);
-
-    expect(response.status).toEqual(200);
-  });
-});
-
-describe("GET /api/movies/:id", () => {
-  it("should return one movie", async () => {
-    const response = await request(app).get("/api/movies/1");
-
-    expect(response.headers["content-type"]).toMatch(/json/);
-
-    expect(response.status).toEqual(200);
-  });
-
-  it("should return no movie", async () => {
-    const response = await request(app).get("/api/movies/0");
-
-    expect(response.status).toEqual(404);
-  });
-});
-
-describe("POST /api/movies", () => {
-  it("should return created movie", async () => {
-   const newMovie = {
-      title: "Star Wars",
-      director: "George Lucas",
-      year: "1977",
-      color: "1",
-      duration: 120,
-    };
-
-    const response = await request(app).post("/api/movies").send(newMovie);
-    // Check if the movie was created successfully
-    expect(response.status).toEqual(201);
-     // Check if the response includes the movie ID
-    expect(response.body).toHaveProperty("id");
-    expect(typeof response.body.id).toBe("number");
-
-
-
-
-  // This step requires that you have access to a `database` module in your tests
-    const [result] = await database.query(
-      "SELECT * FROM movies WHERE id=?",
-      response.body.id
-    );
 
     const [movieInDatabase] = result;
 
-     // Verify that the movie in the database has all the expected properties with correct types
-    expect(movieInDatabase).toHaveProperty("id");
-    expect(typeof movieInDatabase.id).toBe("number");
+    // Etape 1 : Création du test
 
-    expect(movieInDatabase).toHaveProperty("title");
-    expect(typeof movieInDatabase.title).toBe("string");
-    expect(movieInDatabase.title).toStrictEqual(newMovie.title);
+    describe("PUT /api/movies/:id", () => {
+      it("should edit movie", async () => {
+        const newMovie = {
+          title: "Avatar",
+          director: "James Cameron",
+          year: "2009",
+          color: "1",
+          duration: 162,
+        };
 
-    expect(movieInDatabase).toHaveProperty("director");
-    expect(typeof movieInDatabase.director).toBe("string");
+        // Etape 2 : Récupération de l'id du dernier film ajouté
+        const [result] = await database.query(
+          "INSERT INTO movies(title, director, year, color, duration) VALUES (?, ?, ?, ?, ?)",
+          [newMovie.title, newMovie.director, newMovie.year, newMovie.color, newMovie.duration]
+        );
+    
+        const id = result.insertId;
 
-    expect(movieInDatabase).toHaveProperty("year");
-    expect(typeof movieInDatabase.year).toBe("string");
+        // Etape 3 : Exécution de la requête en PUT
 
-    expect(movieInDatabase).toHaveProperty("color");
-    expect(typeof movieInDatabase.color).toBe("string");
+        const updatedMovie = {
+          title: "Wild is life",
+          director: "Alan Smithee",
+          year: "2023",
+          color: "0",
+          duration: 120,
+        };
+    
+        const response = await request(app)
+          .put(`/api/movies/${id}`)
+          .send(updatedMovie);
+    
+        expect(response.status).toEqual(204);
 
-    expect(movieInDatabase).toHaveProperty("duration");
-    expect(typeof movieInDatabase.duration).toBe("number");
-  
+        // Etape 4 : Récupération de la ressource modifiée
 
-    it("should return an error when required properties are missing", async () => {
-      const movieWithMissingProps = { title: "Harry Potter" };
-  
-     const response = await request(app)
-         .post("/api/movies")
-         .send(movieWithMissingProps);
-  
-      expect(response.status).toEqual(500);
-   
-     });
-  
+        const [movies] = await database.query("SELECT * FROM movies WHERE id=?", id);
+
+        const [movieInDatabase] = movies;
+    
+        expect(movieInDatabase).toHaveProperty("id");
+    
+        expect(movieInDatabase).toHaveProperty("title");
+        expect(movieInDatabase.title).toStrictEqual(updatedMovie.title);
+    
+        expect(movieInDatabase).toHaveProperty("director");
+        expect(movieInDatabase.director).toStrictEqual(updatedMovie.director);
+    
+        expect(movieInDatabase).toHaveProperty("year");
+        expect(movieInDatabase.year).toStrictEqual(updatedMovie.year);
+    
+        expect(movieInDatabase).toHaveProperty("color");
+        expect(movieInDatabase.color).toStrictEqual(updatedMovie.color);
+    
+        expect(movieInDatabase).toHaveProperty("duration");
+        expect(movieInDatabase.duration).toStrictEqual(updatedMovie.duration);
+        
+      });
+
+      // Etape 5 : Tester si une erreur est bien renvoyée si on envoie un film incomplet ou mal formaté
+
+      it("should return an error", async () => {
+        const movieWithMissingProps = { title: "Harry Potter" };
+    
+        const response = await request(app)
+          .put(`/api/movies/1`)
+          .send(movieWithMissingProps);
+    
+        expect(response.status).toEqual(500);
     });
+// Etape 6 : Vérification du code de retour si on cherche à modifier un film qui n'existe pas
 
+it("should return no movie", async () => {
+  const newMovie = {
+    title: "Avatar",
+    director: "James Cameron",
+    year: "2009",
+    color: "1",
+    duration: 162,
+  };
+
+  const response = await request(app).put("/api/movies/0").send(newMovie);
+
+  expect(response.status).toEqual(404);
+    });
   });
+
+

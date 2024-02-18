@@ -2,90 +2,92 @@ const request = require("supertest");
 const crypto = require("node:crypto");
 const app = require("../src/app");
 
-describe("GET /api/users", () => {
-  it("should return all users", async () => {
-    const response = await request(app).get("/api/users");
+const [userInDatabase] = result;
 
-    expect(response.headers["content-type"]).toMatch(/json/);
-
-    expect(response.status).toEqual(200);
-  });
-});
-
-describe("GET /api/users/:id", () => {
-  it("should return one user", async () => {
-    const response = await request(app).get("/api/users/1");
-
-    expect(response.headers["content-type"]).toMatch(/json/);
-
-    expect(response.status).toEqual(200);
-  });
-
-  it("should return no user", async () => {
-    const response = await request(app).get("/api/users/0");
-
-    expect(response.status).toEqual(404);
-  });
-});
-
-describe("POST /api/users", () => {
-  it("should return created user", async () => {
+describe("PUT /api/users/:id", () => {
+  it("should edit user", async () => {
     const newUser = {
-      firstname: "Marie",
+      firstname: "Egle",
       lastname: "Martin",
       email: `${crypto.randomUUID()}@wild.co`,
-      city: "Paris",
-      language: "French",
+      city: "Berlin",
+      language: "Dutch",
     };
   
+// Etape 2 : Récupération de l'id du dernier user ajouté
+const [result] = await database.query(
+  "INSERT INTO users(firstname, lastname, email, city, language) VALUES (?, ?, ?, ?, ?)",
+  [newUser.firstname, newUser.lastname, newUser.email, newUser.city, newUser.language]
+);
 
+const id = result.insertId;
 
-const response = await request(app).post("/api/users").send(newUser);
-    // Check if the movie was created successfully
-    expect(response.status).toEqual(201);
-     // Check if the response includes the user ID
-    expect(response.body).toHaveProperty("id");
-    expect(typeof response.body.id).toBe("number");
+// Etape 3 : Exécution de la requête en PUT
 
-     // This step requires that you have access to a `database` module in your tests
-     const [result] = await database.query(
-      "SELECT * FROM users WHERE id=?",
-      response.body.id
-    );
+const updateUser = {
+  firstname: "Jimmy",
+  lastname: "Martin",
+  email: `${crypto.randomUUID()}@wild.co`,
+  city: "Paris",
+  language: "French",
+};
 
-    const [userInDatabase] = result;
+const response = await request(app)
+  .put(`/api/users/${id}`)
+  .send(updateUser);
 
-     // Verify that the user in the database has all the expected properties with correct types
-     expect(userInDatabase).toHaveProperty("id");
-     expect(typeof userInDatabase.id).toBe("number");
+expect(response.status).toEqual(204);
+
+ // Etape 4 : Récupération de la ressource modifiée
+
+ const [users] = await database.query("SELECT * FROM users WHERE id=?", id);
+
+ const [userInDatabase] = users;
+
+ expect(userInDatabase).toHaveProperty("id");
+
+ expect(userInDatabase).toHaveProperty("firstname");
+ expect(userInDatabase.firstname).toStrictEqual(updateUser.firstname);
+
+ expect(userInDatabase).toHaveProperty("lastname");
+ expect(userInDatabase.lastname).toStrictEqual(updateUser.lastname);
+
+ expect(userInDatabase).toHaveProperty("email");
+ expect(userInDatabase.email).toStrictEqual(updateUser.email);
+
+ expect(userInDatabase).toHaveProperty("city");
+ expect(userInDatabase.city).toStrictEqual(updateUser.city);
+
+ expect(userInDatabase).toHaveProperty("language");
+ expect(userInDatabase.language).toStrictEqual(updateUser.language);
  
-     expect(userInDatabase).toHaveProperty("firstname");
-     expect(typeof userInDatabase.firstname).toBe("string");
-
-     expect(userInDatabase).toHaveProperty("lastname");
-     expect(typeof userInDatabase.lastname).toBe("string");
-
-     expect(userInDatabase).toHaveProperty("email");
-     expect(typeof userInDatabase.email).toBe("string");
-
-     expect(userInDatabase).toHaveProperty("city");
-     expect(typeof userInDatabase.city).toBe("string");
-
-     expect(userInDatabase).toHaveProperty("language");
-     expect(typeof userInDatabase.language).toBe("string");
-     
-     it("should return an error when required properties are missing", async () => {
-      const userWithMissingProps = { firstname: "Harry Potter" };
-  
-     const response = await request(app)
-         .post("/api/users")
-         .send(userWithMissingProps);
-  
-      expect(response.status).toEqual(500);
-   
-    });
-  
-  });
-  
-    
 });
+
+ // Etape 5 : Tester si une erreur est bien renvoyée si on envoie un film incomplet ou mal formaté
+
+ it("should return an error", async () => {
+  const userWithMissingProps = { firstname: "Harry Potter" };
+
+  const response = await request(app)
+    .put(`/api/users/1`)
+    .send(userWithMissingProps);
+
+  expect(response.status).toEqual(500);
+
+ });
+// Etape 6 : Vérification du code de retour si on cherche à modifier un film qui n'existe pas
+
+it("should return no user", async () => {
+  const newUser = {
+    firstname: "Egle",
+    lastname: "Martin",
+    email: `${crypto.randomUUID()}@wild.co`,
+    city: "Berlin",
+    language: "Dutch",
+  };
+
+  const response = await request(app).put("/api/users/0").send(newUser);
+
+  expect(response.status).toEqual(404);
+    });
+  });
