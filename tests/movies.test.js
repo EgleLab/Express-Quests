@@ -150,4 +150,18 @@ describe("PUT /api/movies/:id", () => {
   });
 });
 
+describe("DELETE /api/movies/:id", () => {
+  it("should delete a movie", async () => {
+    const response = await request(app).delete("/api/movies/1");
+
+    expect(response.status).toEqual(204);
+  });
+
+  it("should return 404 if movie does not exist", async () => {
+    const response = await request(app).delete("/api/movies/2000");
+
+    expect(response.status).toEqual(404);
+  });
+});
+
 
