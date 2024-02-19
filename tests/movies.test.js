@@ -128,12 +128,13 @@ describe("PUT /api/movies/:id", () => {
   });
 
   it("should return an error", async () => {
-    const updatedMovie = { title: "Harry Potter" };
+    const userWithMissingProps = { director: "Film" };
 
-    const response = await request(app).put(`/api/movies/1`).send(updatedMovie);
-
-    expect(response.status).toEqual(500);
-  });
+    const response = await request(app)
+      .put(`/api/movies/1`)
+      .send(userWithMissingProps);
+      expect(response.status).toEqual(500);
+    });
 
   it("should return no movie", async () => {
     const newMovie = {
