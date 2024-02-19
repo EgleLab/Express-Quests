@@ -15,7 +15,7 @@ describe("GET /api/users", () => {
 
 describe("GET /api/users/:id", () => {
   it("should return one user", async () => {
-    const response = await request(app).get("/api/users/1");
+    const response = await request(app).get("/api/users/3");
     expect(response.headers["content-type"]).toMatch(/json/);
     expect(response.status).toEqual(200);
   });
@@ -62,7 +62,7 @@ describe("POST /api/users", () => {
     const response = await request(app)
       .post("/api/users")
       .send(userWithMissingProps);
-    expect(response.status).toEqual(500);
+    expect(response.status).toEqual(422);
   });
 });
 
@@ -124,7 +124,7 @@ expect(userInDatabase).toHaveProperty("id");
       .put(`/api/users/1`)
       .send(userWithMissingProps);
 
-    expect(response.status).toEqual(500);
+    expect(response.status).toEqual(422);
   });
 
   it("should return no user", async () => {
@@ -143,7 +143,7 @@ expect(userInDatabase).toHaveProperty("id");
 
   describe("DELETE /api/users/:id", () => {
     it("should delete a user", async () => {
-      const response = await request(app).delete("/api/users/1");
+      const response = await request(app).delete("/api/users/3");
   
       expect(response.status).toEqual(204);
     });
