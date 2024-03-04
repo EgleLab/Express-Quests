@@ -1,7 +1,7 @@
 const database = require("../../database")
 //afterAll(() => database.end());
 
-const getUsers = (req, res) => {
+/* const getUsers = (req, res) => {
   database
     .query("select * from users")
     .then(([users]) => {
@@ -11,7 +11,7 @@ const getUsers = (req, res) => {
       console.error(err);
       res.sendStatus(200);
     });
-};
+}; */
 
 const getUserById = (req, res) => {
   const id = parseInt(req.params.id);
@@ -81,6 +81,30 @@ const deleteUser = (req, res) => {
       } else {
         res.sendStatus(204);
       }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.sendStatus(500);
+    });
+};
+
+const getUsers = (req, res) => {
+  let sql = "select * from users";
+  const sqlValues = [];
+
+  if (req.query.language != null) {
+    sql += " where language = ?";
+    sqlValues.push(req.query.language);
+  }
+  if (req.query.city != null) {
+    sql += " where city = ?";
+    sqlValues.push(req.query.city);
+  }
+
+  database
+    .query(sql, sqlValues)
+    .then(([users]) => {
+      res.json(users);
     })
     .catch((err) => {
       console.error(err);
