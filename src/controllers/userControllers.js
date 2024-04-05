@@ -99,6 +99,10 @@ const getUsers = (req, res) => {
   if (req.query.city != null) {
     sql += " where city = ?";
     sqlValues.push(req.query.city);
+  } 
+  else if (req.query.city) {
+    sql += " WHERE city = ?";
+    sqlValues.push(req.query.city);
   }
 
   database
