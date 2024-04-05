@@ -89,24 +89,33 @@ const deleteMovie = (req, res) => {
 };
 
 const getMovies = (req, res) => {
-  let sql = "select * from movies";
-  const sqlValues = [];
+  const initialSql = "select * from movies";
+  const where = [];
 
   if (req.query.color != null) {
-    sql += " where color = ?";
-    sqlValues.push(req.query.color);
-
-    if (req.query.max_duration != null) {
-      sql += " and duration <= ?";
-      sqlValues.push(req.query.max_duration);
-    }
-  } else if (req.query.max_duration != null) {
-    sql += " where duration <= ?";
-    sqlValues.push(req.query.max_duration);
+    where.push({
+      column: "color",
+      value: req.query.color,
+      operator: "=",
+    });
+  }
+  if (req.query.max_duration != null) {
+    where.push({
+      column: "duration",
+      value: req.query.max_duration,
+      operator: "<=",
+    });
   }
 
   database
-    .query(sql, sqlValues)
+    .query(
+      where.reduce(
+        (sql, { column, operator }, index) =>
+          `${sql} ${index === 0 ? "where" : "and"} ${column} ${operator} ?`,
+        initialSql
+      ),
+      where.map(({ value }) => value)
+    )
     .then(([movies]) => {
       res.json(movies);
     })
@@ -115,7 +124,6 @@ const getMovies = (req, res) => {
       res.status(500).send("Error retrieving data from database");
     });
 };
-
 
 module.exports = {
   getMovies,

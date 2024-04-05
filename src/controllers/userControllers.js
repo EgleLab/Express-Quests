@@ -89,30 +89,39 @@ const deleteUser = (req, res) => {
 };
 
 const getUsers = (req, res) => {
-  let sql = "select * from users";
-  const sqlValues = [];
+  const initialSql = "select * from users";
+  const where = [];
 
-  if (req.query.language != null) {
-    sql += " where language = ?";
-    sqlValues.push(req.query.language);
-  }
   if (req.query.city != null) {
-    sql += " where city = ?";
-    sqlValues.push(req.query.city);
-  } 
-  else if (req.query.city) {
-    sql += " WHERE city = ?";
-    sqlValues.push(req.query.city);
+    where.push({
+      column: "city",
+      value: req.query.city,
+      operator: "=",
+    });
+  }
+  if (req.query.language != null) {
+    where.push({
+      column: "language",
+      value: req.query.language,
+      operator: "=",
+    });
   }
 
   database
-    .query(sql, sqlValues)
+    .query(
+      where.reduce(
+        (sql, { column, operator }, index) =>
+          `${sql} ${index === 0 ? "where" : "and"} ${column} ${operator} ?`,
+        initialSql
+      ),
+      where.map(({ value }) => value)
+    )
     .then(([users]) => {
       res.json(users);
     })
     .catch((err) => {
       console.error(err);
-      res.sendStatus(500);
+      res.status(500).send("Error retrieving data from database");
     });
 };
 
